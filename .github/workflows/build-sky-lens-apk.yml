@@ -1,8 +1,6 @@
 name: Build Sky Lens APK
 
 on:
-  push:
-    branches: [sky-lens-apk-build]
   pull_request:
     branches: [main]
   workflow_dispatch:
@@ -55,5 +53,3 @@ jobs:
           name: Sky-Lens-Android-APK
           path: dist/*
           retention-days: 30
-
-# Build trigger after enabling the workflow on main.
