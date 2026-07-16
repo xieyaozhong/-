@@ -3,6 +3,8 @@ name: Build Sky Lens APK
 on:
   push:
     branches: [sky-lens-apk-build]
+  pull_request:
+    branches: [main]
   workflow_dispatch:
 
 jobs:
