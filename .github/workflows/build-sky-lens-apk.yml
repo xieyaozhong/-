@@ -1,0 +1,55 @@
+name: Build Sky Lens APK
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Restore source archive
+        run: |
+          base64 --decode sky-lens-native-source.zip.b64 > sky-lens-native-source.zip
+          unzip -q sky-lens-native-source.zip
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: android-actions/setup-android@v3
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+
+      - name: Install Android SDK
+        run: yes | sdkmanager "platforms;android-35" "build-tools;35.0.0"
+
+      - name: Build unsigned release APK
+        working-directory: sky-lens-native
+        run: gradle :app:assembleRelease --no-daemon --stacktrace
+
+      - name: Sign installable APK
+        run: |
+          mkdir -p dist
+          UNSIGNED=$(find sky-lens-native/app/build/outputs/apk/release -name '*.apk' | head -n 1)
+          test -n "$UNSIGNED"
+          keytool -genkeypair -v -keystore dist/skylens.keystore -storepass skylens2026 -keypass skylens2026 -alias skylens -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Sky Lens, OU=Android, O=Sky Lens, L=Taichung, ST=Taiwan, C=TW"
+          BUILD_TOOLS="$ANDROID_HOME/build-tools/35.0.0"
+          "$BUILD_TOOLS/zipalign" -p -f 4 "$UNSIGNED" dist/Sky-Lens-aligned.apk
+          "$BUILD_TOOLS/apksigner" sign --ks dist/skylens.keystore --ks-pass pass:skylens2026 --key-pass pass:skylens2026 --out dist/Sky-Lens-Android.apk dist/Sky-Lens-aligned.apk
+          "$BUILD_TOOLS/apksigner" verify --verbose --print-certs dist/Sky-Lens-Android.apk
+          rm -f dist/Sky-Lens-aligned.apk dist/skylens.keystore
+          sha256sum dist/Sky-Lens-Android.apk > dist/Sky-Lens-Android.apk.sha256
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Sky-Lens-Android-APK
+          path: dist/*
+          retention-days: 30
