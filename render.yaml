@@ -1,0 +1,24 @@
+services:
+  - type: web
+    name: value-generator
+    runtime: docker
+    rootDir: value-generator-cloud
+    region: singapore
+    plan: starter
+    numInstances: 1
+    autoDeployTrigger: off
+    healthCheckPath: /health
+    maxShutdownDelaySeconds: 30
+    envVars:
+      - key: VALUE_GENERATOR_DB
+        value: /app/data/value_generator.db
+      - key: REQUIRE_AUTH
+        value: "1"
+      - key: APP_USERNAME
+        value: admin
+      - key: APP_PASSWORD
+        sync: false
+    disk:
+      name: value-generator-data
+      mountPath: /app/data
+      sizeGB: 1
